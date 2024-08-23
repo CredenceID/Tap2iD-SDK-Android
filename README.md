@@ -24,7 +24,7 @@
 
 ### Tap2iD SDK for Android
 - [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Release-Notes)
-- [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Android/edit/review_1.0/README.md)
+- [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-for-Android-SDK)
 - [Sample App](https://github.com/CredenceID/Tap2idVerifySdkAndroidSample)
 
 
