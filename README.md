@@ -15,7 +15,7 @@
 - Use the [Step-by-Step Instructions to Generate SDK License Key](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-to-Generate-License-Key) to obtain the required license for SDK integration.
 
 ### Documentation
-- [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Release-Notes)
+- [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Android/releases)
 - [API Documentation](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Tap2iD-SDK-API-Documentation)
 - [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-to-Integrate-Tap2iD-Android-SDK)
 - [Sample App](app)
