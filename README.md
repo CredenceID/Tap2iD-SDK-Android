@@ -1,5 +1,6 @@
-# Tap2iD-SDK-Android
-Sample app and documentation for integrating the Tap2iD SDK
+
+
+![Template 5](https://github.com/user-attachments/assets/3871aaa5-dcab-4a15-9ae7-cdba79e436e2)
 
 ---
 © 2024 Credence ID LLC. All rights reserved.
