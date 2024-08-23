@@ -2,27 +2,19 @@
 
 ![Template 5 (1)](https://github.com/user-attachments/assets/470b82b9-cc72-4ce9-9343-da1bede1bc58)
 
-
-![image](https://github.com/user-attachments/assets/484e7126-71b8-4406-9739-f8d76bd9255e)
-
-# Tap2iD SDK 
-
 **Credence ID's Tap2iD SDK** is a crucial component of the Verify with Credence (VwC) platform, designed for mobile ID verification. It adheres to the ISO/IEC 18013-5:2021 standard, which establishes an interoperable digital representation for mobile-based credentials, such as mobile driver's licenses (mDL). The SDK is available for integration with existing mobile apps on Android, iOS, and Windows desktop platforms. The Tap2iD SDK combines the functionalities offered by various digital identity libraries to provide mDL verification capabilities to third-party apps.
 
 ---
 
 ## Pre-requisites
 
-### 1. Register on VwC
+### Register on VwC
 - Follow the [Step-by-Step Instruction to Register on CredenceID VwC Portal](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-to-Register-on-Verify-with-Credence-Portal) to get started.
 
-### 2. Generate SDK License Key
+### Generate SDK License Key
 - Use the [Step-by-Step Instructions to Generate SDK License Key](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-to-Generate-License-Key) to obtain the required license for SDK integration.
 
-
-## 📄Documentation
-
-### Tap2iD SDK for Android
+### Documentation
 - [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Release-Notes)
 - [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-for-Android-SDK)
 - [Sample App](https://github.com/CredenceID/Tap2idVerifySdkAndroidSample)
