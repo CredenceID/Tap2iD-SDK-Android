@@ -1,4 +1,4 @@
-
+[![Latest release](https://img.shields.io/github/v/release/CredenceID/Tap2iD-SDK-Android?style=flat-square)](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/releases/latest)
 
 ![Template 5 (1)](https://github.com/user-attachments/assets/470b82b9-cc72-4ce9-9343-da1bede1bc58)
 
