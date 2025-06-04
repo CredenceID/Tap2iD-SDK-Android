@@ -13,4 +13,5 @@
     <string name="verify">Verify</string>
     <string name="cd_portrait_image">portrait_image</string>
     <string name="cd_signature_image">signature_image</string>
+    <string name="cd_user_portrait">user_portrait</string>
 </resources>

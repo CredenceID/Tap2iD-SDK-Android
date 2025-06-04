@@ -25,7 +25,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="@string/nfc"
-        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="@id/centerGuideline"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/centerHorizontalGuideline" />
@@ -37,7 +36,7 @@
         android:layout_marginTop="10dp"
         android:text="@string/qr"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@id/centerGuideline"
         app:layout_constraintTop_toBottomOf="@id/centerHorizontalGuideline" />
 
     <androidx.constraintlayout.widget.Guideline

@@ -74,17 +74,24 @@ class MainActivity : AppCompatActivity() {
         if (isPermissionsGranted()) {
             Log.d(TAG, "All permissions are granted")
         } else {
-            requestPermissionsLauncher.launch(
-                arrayOf(
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.BLUETOOTH_ADVERTISE,
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.NEARBY_WIFI_DEVICES,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
-            )
+            requestPermissionsLauncher.launch(getRequiredPermissions())
         }
+    }
+
+    private fun getRequiredPermissions(): Array<String> {
+        val permissions = mutableListOf<String>()
+        permissions.add(Manifest.permission.CAMERA)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+            permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+            permissions.add(Manifest.permission.BLUETOOTH_SCAN)
+            permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+        } else {
+            permissions.add(Manifest.permission.BLUETOOTH)
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        return permissions.toTypedArray()
     }
 
     private fun isPermissionsGranted(): Boolean {

@@ -5,13 +5,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.credenceid.sample.R
+import com.credenceid.sample.common.SharedViewModel
 import com.credenceid.sample.databinding.FragmentResultBinding
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class ResultFragment : Fragment() {
 
@@ -20,6 +19,7 @@ class ResultFragment : Fragment() {
         get() = _binding!!
 
     private val args: ResultFragmentArgs by navArgs()
+    private val sharedViewModel: SharedViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,11 +34,15 @@ class ResultFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Portrait
+        sharedViewModel.userPortraitLiveData?.let {
+            binding.userPortraitIv.setImageBitmap(it)
+        }
+
+        //mDL Attributes
         val identityDataJsonString = args.mDocResultJsonString
         identityDataJsonString?.let {
-            lifecycleScope.launch(Dispatchers.Main) {
-                binding.resultTv.text = it
-            }
+            binding.resultTv.text = it
         }
 
         binding.doneButton.setOnClickListener {

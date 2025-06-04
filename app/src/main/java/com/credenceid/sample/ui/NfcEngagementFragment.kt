@@ -1,21 +1,20 @@
 package com.credenceid.sample.ui
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.credenceid.sample.R
 import com.credenceid.sample.common.Screen
 import com.credenceid.sample.common.SharedViewModel
+import com.credenceid.sample.common.VerificationResult
 import com.credenceid.sample.databinding.FragmentNfcEngagementBinding
-import com.credenceid.tap2idSdk.api.MdocVerificationListener
-import com.credenceid.tap2idSdk.api.models.VerificationStage
-import com.credenceid.tap2idSdk.core.model.MdocAttributes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -54,35 +53,50 @@ class NfcEngagementFragment : Fragment() {
     }
 
     private fun verifyWithNfc() {
-        sharedViewModel.verifyWitNfc(requireActivity(), mdocVerificationListener = object : MdocVerificationListener {
-            override fun onVerificationCompleted(result: MdocAttributes) {
-                Log.d("Sample", result.toString())
-                setStatusOnUi("Verification Success")
-                lifecycleScope.launch {
-                    delay(5000)
-                    val identityResult: String = sharedViewModel.prettyPrintJson(result)
-                    val directions = NfcEngagementFragmentDirections.actionNfcEngagementFragmentToResultFragment(identityResult)
-                    findNavController().navigate(directions)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                sharedViewModel.verifyWitNfc(requireActivity()).collect { result ->
+                    when (result) {
+                        is VerificationResult.StageCompleted -> {
+                            if (isAdded) {
+                                setStatusOnUi(result.message)
+                            }
+                        }
+
+                        is VerificationResult.StageError -> {
+                            if (isAdded) {
+                                setStatusOnUi(result.message)
+                            }
+                        }
+
+                        is VerificationResult.StageStarted -> {
+                            if (isAdded) {
+                                setStatusOnUi(result.message)
+                            }
+                        }
+
+                        is VerificationResult.VerificationCompleted -> {
+                            if (isAdded) {
+                                if (result.hasValidationErrors) {
+                                    setStatusOnUi("Verification Successful with some validation failures")
+                                    delay(5000)
+                                } else {
+                                    setStatusOnUi("Verification Successful")
+                                }
+                                val directions = NfcEngagementFragmentDirections.actionNfcEngagementFragmentToResultFragment(result.resultJsonString)
+                                findNavController().navigate(directions)
+                            }
+                        }
+
+                        VerificationResult.VerificationProcessStarted -> {
+                            if (isAdded) {
+                                setStatusOnUi("Verifying mDL...")
+                            }
+                        }
+                    }
                 }
             }
-
-            override fun onVerificationStageCompleted(stage: VerificationStage) {
-                Log.d("Sample", stage.name)
-                setStatusOnUi("Completed :".plus(stage.toString()))
-            }
-
-            override fun onVerificationStageError(stage: VerificationStage, error: Throwable) {
-                Log.e("Sample", "${stage.name}: ${error.message}")
-                setStatusOnUi("Error :".plus(stage.toString()))
-                setStatusOnUi("Message :".plus(error.message))
-                setStatusOnUi("Verification Failed")
-            }
-
-            override fun onVerificationStageStarted(stage: VerificationStage) {
-                Log.d("Sample", stage.name)
-                setStatusOnUi("Started:".plus(stage.toString()))
-            }
-        })
+        }
     }
 
     private fun setStatusOnUi(message: String) {
@@ -96,5 +110,4 @@ class NfcEngagementFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

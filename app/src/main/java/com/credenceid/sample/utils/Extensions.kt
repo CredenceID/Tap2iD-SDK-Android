@@ -1,5 +1,8 @@
 package com.credenceid.sample.utils
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+
 internal val Any.TAG: String
     get() {
         return if (!javaClass.isAnonymousClass) {
@@ -18,3 +21,12 @@ internal val Any.TAG: String
             }
         }
     }
+
+/**
+ * Converts a byte array to a Bitmap.
+ *
+ * @return The decoded Bitmap, or null if decoding fails.
+ */
+fun ByteArray.toBitmap(): Bitmap? {
+    return BitmapFactory.decodeByteArray(this, 0, size)
+}

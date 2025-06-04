@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace = "com.credenceid.sample"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.credenceid.sample"
         minSdk = 29
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -22,6 +22,10 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            versionNameSuffix = "-release"
+        }
+        debug {
+            versionNameSuffix = "-debug"
         }
     }
     compileOptions {
@@ -73,6 +77,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.barcode.scanning)
+    implementation (libs.kotlinx.coroutines.guava)
 
     implementation(libs.gson)
 }

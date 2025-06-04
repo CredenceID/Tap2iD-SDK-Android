@@ -9,18 +9,18 @@ import android.view.ViewGroup
 import androidx.camera.core.AspectRatio
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.credenceid.sample.R
 import com.credenceid.sample.common.Screen
 import com.credenceid.sample.common.SharedViewModel
+import com.credenceid.sample.common.VerificationResult
 import com.credenceid.sample.databinding.FragmentQrCodeEngagementBinding
 import com.credenceid.sample.utils.BarcodeScannerCallback
 import com.credenceid.sample.utils.QRCodeScanner
 import com.credenceid.sample.utils.TAG
-import com.credenceid.tap2idSdk.api.MdocVerificationListener
-import com.credenceid.tap2idSdk.api.models.VerificationStage
-import com.credenceid.tap2idSdk.core.model.MdocAttributes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -117,34 +117,51 @@ class QrCodeEngagementFragment : Fragment() {
     }
 
     private fun verifyWithQr(qrCode: String) {
-        sharedViewModel.verifyWithQr(qrCode, mdocVerificationListener = object : MdocVerificationListener {
-            override fun onVerificationCompleted(result: MdocAttributes) {
-                setStatusOnUi("Verification Success")
-                lifecycleScope.launch {
-                    delay(2000)
-                    val identityResult: String = sharedViewModel.prettyPrintJson(result)
-                    val directions = QrCodeEngagementFragmentDirections.actionQrCodeEngagementFragmentToResultFragment(identityResult)
-                    findNavController().navigate(directions)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                sharedViewModel.verifyWithQr(context = requireContext(), qrCodeString = qrCode).collect { result ->
+                    when (result) {
+                        is VerificationResult.StageCompleted -> {
+                            if (isAdded) {
+                                setStatusOnUi(result.message)
+                            }
+                        }
+
+                        is VerificationResult.StageError -> {
+                            if (isAdded) {
+                                setStatusOnUi(result.message)
+                            }
+                        }
+
+                        is VerificationResult.StageStarted -> {
+                            if (isAdded) {
+                                setStatusOnUi(result.message)
+                            }
+                        }
+
+                        is VerificationResult.VerificationCompleted -> {
+                            if (isAdded) {
+                                if (result.hasValidationErrors) {
+                                    setStatusOnUi("Verification Successful with some validation failures")
+                                    delay(5000)
+                                } else {
+                                    setStatusOnUi("Verification Successful")
+                                }
+
+                                val directions = QrCodeEngagementFragmentDirections.actionQrCodeEngagementFragmentToResultFragment(result.resultJsonString)
+                                findNavController().navigate(directions)
+                            }
+                        }
+
+                        VerificationResult.VerificationProcessStarted -> {
+                            if (isAdded) {
+                                setStatusOnUi("Verifying mDL...")
+                            }
+                        }
+                    }
                 }
             }
-
-            override fun onVerificationStageCompleted(stage: VerificationStage) {
-                Log.d(TAG, stage.name)
-                setStatusOnUi("Completed :".plus(stage.toString()))
-            }
-
-            override fun onVerificationStageError(stage: VerificationStage, error: Throwable) {
-                Log.e(TAG, "Stage :${stage.name}\nError Message :${error.message}")
-                setStatusOnUi("Error Stage :".plus(stage.name))
-                setStatusOnUi("Message :".plus(error.message ?: "Unknown error"))
-                setStatusOnUi("Verification Failed")
-            }
-
-            override fun onVerificationStageStarted(stage: VerificationStage) {
-                Log.d(TAG, stage.name)
-                setStatusOnUi("Started:".plus(stage.toString()))
-            }
-        })
+        }
     }
 
     private fun setStatusOnUi(message: String) {
