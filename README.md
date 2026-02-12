@@ -17,7 +17,7 @@ Available for Android, iOS, and Windows desktop, the SDK allows seamless integra
 ## Pre-requisites
 
 ### Complete your Verify with Credence portal registration and generate the SDK license key required to begin integration
-- Follow the [SDK Onboarding Guide: Portal Registration & Key Generation](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/SDK-Onboarding-Guide:-Verify-with-Credence-Portal-Registration-&-Key-Generation) to get started.
+- Follow the [SDK Onboarding Guide: Portal Registration & Key Generation](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Prerequisite:-Verify-with-Credence-Portal-Registration-&-Key-Generation) to get started.
 
 ### Documentation
 - [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Android/releases)
