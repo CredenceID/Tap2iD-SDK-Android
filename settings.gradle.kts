@@ -35,5 +35,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Tap2idSDKAndroidSampleInternal"
+rootProject.name = "Tap2idSDKAndroidSample"
 include(":app")
