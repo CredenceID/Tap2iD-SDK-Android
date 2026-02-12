@@ -13,7 +13,7 @@ import androidx.navigation.fragment.findNavController
 import com.credenceid.sample.R
 import com.credenceid.sample.common.Screen
 import com.credenceid.sample.common.SharedViewModel
-import com.credenceid.sample.common.VerificationResult
+import com.credenceid.sample.common.VerificationResultCallback
 import com.credenceid.sample.databinding.FragmentNfcEngagementBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -46,7 +46,7 @@ class NfcEngagementFragment : Fragment() {
     }
 
     private fun setupView() {
-        binding.titleTv.text = sharedViewModel.getTitle(Screen.NFC)
+        binding.titleTv.text = sharedViewModel.getTitle(Screen.NFC, requireContext())
         binding.cancelButton.setOnClickListener {
             findNavController().navigate(R.id.action_nfcEngagementFragment_to_homeFragment)
         }
@@ -57,25 +57,25 @@ class NfcEngagementFragment : Fragment() {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 sharedViewModel.verifyWitNfc(requireActivity()).collect { result ->
                     when (result) {
-                        is VerificationResult.StageCompleted -> {
+                        is VerificationResultCallback.StageCompleted -> {
                             if (isAdded) {
                                 setStatusOnUi(result.message)
                             }
                         }
 
-                        is VerificationResult.StageError -> {
+                        is VerificationResultCallback.StageError -> {
                             if (isAdded) {
                                 setStatusOnUi(result.message)
                             }
                         }
 
-                        is VerificationResult.StageStarted -> {
+                        is VerificationResultCallback.StageStarted -> {
                             if (isAdded) {
                                 setStatusOnUi(result.message)
                             }
                         }
 
-                        is VerificationResult.VerificationCompleted -> {
+                        is VerificationResultCallback.VerificationCompleted -> {
                             if (isAdded) {
                                 if (result.hasValidationErrors) {
                                     setStatusOnUi("Verification Successful with some validation failures")
@@ -83,12 +83,12 @@ class NfcEngagementFragment : Fragment() {
                                 } else {
                                     setStatusOnUi("Verification Successful")
                                 }
-                                val directions = NfcEngagementFragmentDirections.actionNfcEngagementFragmentToResultFragment(result.resultJsonString)
+                                val directions = NfcEngagementFragmentDirections.actionNfcEngagementFragmentToResultFragment()
                                 findNavController().navigate(directions)
                             }
                         }
 
-                        VerificationResult.VerificationProcessStarted -> {
+                        VerificationResultCallback.VerificationProcessStarted -> {
                             if (isAdded) {
                                 setStatusOnUi("Verifying mDL...")
                             }

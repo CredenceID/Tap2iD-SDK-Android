@@ -3,14 +3,15 @@ package com.credenceid.sample.common
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.credenceid.sample.BuildConfig
-import com.credenceid.sample.utils.Jpeg2kConverter
 import com.credenceid.sample.utils.TAG
 import com.credenceid.sample.utils.Utils
-import com.credenceid.sample.utils.toBitmap
+import com.credenceid.sample.utils.VerificationReportGenerator
 import com.credenceid.tap2idSdk.api.InitSdkResultListener
 import com.credenceid.tap2idSdk.api.MdocVerificationListener
 import com.credenceid.tap2idSdk.api.Tap2iDSdk
@@ -20,34 +21,27 @@ import com.credenceid.tap2idSdk.api.models.QrConfig
 import com.credenceid.tap2idSdk.api.models.SdkConfigBuilder
 import com.credenceid.tap2idSdk.api.models.SdkInitializationResult
 import com.credenceid.tap2idSdk.api.models.VerificationStage
-import com.credenceid.tap2idSdk.core.model.DrivingPrivilege
-import com.credenceid.tap2idSdk.core.model.MdocAttributes
-import com.credenceid.tap2idSdk.core.model.ValidationResult
+// Updated Import: TrustResult -> TrustStatus
+import com.credenceid.tap2idSdk.core.model.TrustStatus
+import com.credenceid.tap2idSdk.core.model.VerificationResult
+import com.credenceid.tap2idSdk.core.model.VerificationStatus
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
-import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
-import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
-import java.lang.reflect.Type
-import java.time.LocalDate
+import java.io.ByteArrayOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class SharedViewModel : ViewModel() {
 
-    var userPortraitLiveData: Bitmap? = null
+    private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    fun getTitle(screen: Screen): String {
-        return when (screen) {
-            Screen.HOME -> "Tap2iD-SDK\nSample\nApp Version : ${BuildConfig.VERSION_NAME}\nSDK Version : ${Tap2iDSdk.getSdkVersion()}"
-            Screen.NFC -> "NFC Engagement"
-            Screen.QR -> "QR Engagement"
-            Screen.RESULT -> "mDL Data"
-            Screen.LICENSE_KEY_VERIFICATION -> "Please enter License Key\nto verify with VwC"
-        }
-    }
+    var storedVerificationHtml: String? = null
+        private set
 
     fun initializeSdk(licenseKey: String, applicationContext: Context, resultCallback: (Result<String>) -> Unit) {
         viewModelScope.launch {
@@ -74,229 +68,113 @@ class SharedViewModel : ViewModel() {
                         resultCallback(Result.success(resultData))
                     } else {
                         Log.e(TAG, "[Error] ${result.licenseVerificationResult}")
-                        resultCallback(Result.failure(Error("License is not valid. Please use a valid license key")))
+                        resultCallback(Result.failure(Error("License is not valid")))
                     }
                 }
             })
         }
     }
 
-    fun verifyWithQr(context: Context, qrCodeString: String) = callbackFlow<VerificationResult> {
+    fun verifyWithQr(qrCodeString: String) = callbackFlow {
         viewModelScope.launch {
             Tap2iDSdk.verifyMdoc(
-                engagementConfig = EngagementConfig(qrConfig = QrConfig(qrCodeString)), object : MdocVerificationListener {
-                    override fun onVerificationCompleted(mdocAttributes: MdocAttributes, verificationResult: ValidationResult) {
-                        val attributesResult: String = prettyPrintJson(mdocAttributes)
-                        val validationResult: String = prettyPrintJson(verificationResult)
-                        val result = attributesResult.plus("\n").plus(validationResult)
-
-                        mdocAttributes.portrait?.let {
-                            userPortraitLiveData = Jpeg2kConverter.decodeByteArray(context, it)
-                        }
-
-                        trySend(
-                            VerificationResult.VerificationCompleted(
-                                message = "Success",
-                                resultJsonString = result,
-                                userPortrait = mdocAttributes.portrait?.toBitmap(),
-                                hasValidationErrors = !verificationResult.validationErrors.isNullOrEmpty()
-                            )
-                        )
-                    }
-
-                    override fun onVerificationStageCompleted(stage: VerificationStage) {
-                        trySend(
-                            VerificationResult.StageCompleted(
-                                message = "Completed :".plus(stage.toString())
-                            )
-                        )
-                    }
-
-                    override fun onVerificationStageError(stage: VerificationStage, error: Throwable) {
-                        val errorMessage = buildString {
-                            append("Error Stage :".plus(stage.name).plus("\n"))
-                            append("Message :".plus(error.message ?: "Unknown error").plus("\n"))
-                            append("Verification Failed".plus("\n"))
-                        }
-                        trySend(
-                            VerificationResult.StageError(
-                                message = errorMessage
-                            )
-                        )
-                    }
-
-                    override fun onVerificationStageStarted(stage: VerificationStage) {
-                        trySend(
-                            VerificationResult.StageStarted(
-                                message = "Started :".plus(stage.toString())
-                            )
-                        )
-                    }
-                })
+                engagementConfig = EngagementConfig(qrConfig = QrConfig(qrCodeString)),
+                mdocVerificationListener = createVerificationListener(this@callbackFlow)
+            )
         }
-
         try {
-            send(VerificationResult.VerificationProcessStarted)
-            awaitClose {
-                Log.d(TAG, "callbackFlow for mdocVerificationResult closed")
-            }
+            send(VerificationResultCallback.VerificationProcessStarted)
+            awaitClose { Log.d(TAG, "callbackFlow for QR closed") }
         } finally {
             Log.d(TAG, "callbackFlow block finished")
         }
     }
 
-    fun verifyWitNfc(activity: Activity) = callbackFlow<VerificationResult> {
+    fun verifyWitNfc(activity: Activity) = callbackFlow {
         viewModelScope.launch {
             Tap2iDSdk.verifyMdoc(
-                engagementConfig = EngagementConfig(nfcConfig = NfcConfig(activity)), object : MdocVerificationListener {
-                    override fun onVerificationCompleted(mdocAttributes: MdocAttributes, verificationResult: ValidationResult) {
-                        val attributesResult: String = prettyPrintJson(mdocAttributes)
-                        val validationResult: String = prettyPrintJson(verificationResult)
-                        val result = attributesResult.plus("\n").plus(validationResult)
-                        userPortraitLiveData = mdocAttributes.portrait?.toBitmap()
-
-                        trySend(
-                            VerificationResult.VerificationCompleted(
-                                message = "Success",
-                                resultJsonString = result,
-                                userPortrait = mdocAttributes.portrait?.toBitmap(),
-                                hasValidationErrors = !verificationResult.validationErrors.isNullOrEmpty()
-                            )
-                        )
-                    }
-
-                    override fun onVerificationStageCompleted(stage: VerificationStage) {
-                        trySend(
-                            VerificationResult.StageCompleted(
-                                message = "Completed :".plus(stage.toString())
-                            )
-                        )
-                    }
-
-                    override fun onVerificationStageError(stage: VerificationStage, error: Throwable) {
-                        val errorMessage = buildString {
-                            append("Error Stage :".plus(stage.name).plus("\n"))
-                            append("Message :".plus(error.message ?: "Unknown error").plus("\n"))
-                            append("Verification Failed".plus("\n"))
-                        }
-                        trySend(
-                            VerificationResult.StageError(
-                                message = errorMessage
-                            )
-                        )
-                    }
-
-                    override fun onVerificationStageStarted(stage: VerificationStage) {
-                        trySend(
-                            VerificationResult.StageStarted(
-                                message = "Started :".plus(stage.toString())
-                            )
-                        )
-                    }
-                })
+                engagementConfig = EngagementConfig(nfcConfig = NfcConfig(activity)),
+                mdocVerificationListener = createVerificationListener(this@callbackFlow)
+            )
         }
-
         try {
-            send(VerificationResult.VerificationProcessStarted)
-            awaitClose {
-                Log.d(TAG, "callbackFlow for mdocVerificationResult closed")
-            }
+            send(VerificationResultCallback.VerificationProcessStarted)
+            awaitClose { Log.d(TAG, "callbackFlow for NFC closed") }
         } finally {
             Log.d(TAG, "callbackFlow block finished")
         }
     }
-}
 
-fun prettyPrintJson(model: MdocAttributes): String {
-    val gson = GsonBuilder()
-        .setPrettyPrinting()
-        .registerTypeAdapter(LocalDate::class.java, LocalDateSerializer())
-        .registerTypeAdapter(ByteArray::class.java, ByteArraySerializer())
-        .registerTypeAdapter(
-            object : TypeToken<List<DrivingPrivilege>>() {}.type,
-            DrivingPrivilegesSerializer()
-        )
-        .create()
-    return gson.toJson(model)
-}
-
-fun prettyPrintJson(model: ValidationResult): String {
-    val gson = GsonBuilder()
-        .setPrettyPrinting()
-        .registerTypeAdapter(LocalDate::class.java, LocalDateSerializer())
-        .registerTypeAdapter(ByteArray::class.java, ByteArraySerializer())
-        .registerTypeAdapter(
-            object : TypeToken<List<DrivingPrivilege>>() {}.type,
-            DrivingPrivilegesSerializer()
-        )
-        .create()
-    return gson.toJson(model)
-}
-
-class LocalDateSerializer : JsonSerializer<LocalDate> {
-    override fun serialize(
-        src: LocalDate,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement {
-        return context.serialize(src.toString())
+    fun clearVerificationData() {
+        storedVerificationHtml = null
+        Log.d(TAG, "Verification data cleared from ViewModel")
     }
-}
 
-class ByteArraySerializer : JsonSerializer<ByteArray> {
-    override fun serialize(
-        src: ByteArray,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement {
-        val jsonObject = JsonObject()
-        jsonObject.addProperty("image(bytes)", src.size)
-        return jsonObject
+    fun getTitle(screen: Screen, context: Context): String {
+        return when (screen) {
+            Screen.HOME -> "Tap2iD-SDK\nSample\nApp Version : ${BuildConfig.VERSION_NAME}\nSDK Version : ${Tap2iDSdk.getSdkVersion()}\nDeviceID : ${Utils.getAndroidId(context)}\nPackage Name : ${context.packageName}"
+            Screen.NFC -> "NFC Engagement"
+            Screen.QR -> "QR Engagement"
+            Screen.RESULT -> "mDL Data"
+            Screen.LICENSE_KEY_VERIFICATION -> "Please enter License Key\nto verify with VwC\n---\nApp Version : ${BuildConfig.VERSION_NAME}\nSDK Version : ${Tap2iDSdk.getSdkVersion()}\nDeviceID : ${Utils.getAndroidId(context)}\nPackage Name : ${context.packageName}"
+        }
     }
-}
 
-class DrivingPrivilegesSerializer : JsonSerializer<List<DrivingPrivilege>> {
-    override fun serialize(
-        src: List<DrivingPrivilege>,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement {
-        val jsonObject = JsonObject()
-        val drivingPrivilegeStringBuilder = buildString {
-            src.forEach { drivingPrivileges ->
-                val codes = buildString {
-                    drivingPrivileges.codes?.forEach {
-                        append(it)
-                    }
+    private fun createVerificationListener(producer: kotlinx.coroutines.channels.ProducerScope<VerificationResultCallback>) =
+        object : MdocVerificationListener {
+            override fun onVerificationStageCompleted(stage: VerificationStage) {
+                producer.trySend(VerificationResultCallback.StageCompleted("Completed: $stage"))
+            }
+
+            override fun onVerificationCompleted(verificationResult: VerificationResult) {
+                logResultAsJson(verificationResult)
+
+                viewModelScope.launch(Dispatchers.Default) {
+                    storedVerificationHtml = VerificationReportGenerator.generateHtml(verificationResult)
+                    producer.trySend(
+                        VerificationResultCallback.VerificationCompleted(
+                            message = "Success",
+                            hasValidationErrors = verificationResult.status == VerificationStatus.FAILURE
+                        )
+                    )
                 }
-                append(drivingPrivileges.vehicleCategory)
-                append(drivingPrivileges.issueDate)
-                append(drivingPrivileges.expiryDate)
-                append(codes)
+            }
+
+            override fun onVerificationStageError(stage: VerificationStage, error: Throwable) {
+                val errorMessage = "Error Stage: ${stage.name}\nMessage: ${error.message ?: "Unknown"}"
+                producer.trySend(VerificationResultCallback.StageError(errorMessage))
+            }
+
+            override fun onVerificationStageStarted(stage: VerificationStage) {
+                producer.trySend(VerificationResultCallback.StageStarted("Started: $stage"))
             }
         }
-        jsonObject.addProperty("drivingPrivileges", drivingPrivilegeStringBuilder)
-        return jsonObject
+
+    private fun logResultAsJson(result: VerificationResult) {
+        try {
+            val jsonString = gson.toJson(result)
+            if (jsonString.length > 4000) {
+                Log.d(TAG, "VerificationResult JSON (Part 1):")
+                jsonString.chunked(4000).forEach { Log.d(TAG, it) }
+            } else {
+                Log.d(TAG, "VerificationResult JSON:\n$jsonString")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to serialize JSON: ${e.message}")
+        }
     }
 }
 
 enum class Screen {
-    HOME,
-    NFC,
-    QR,
-    RESULT,
-    LICENSE_KEY_VERIFICATION
+    HOME, NFC, QR, RESULT, LICENSE_KEY_VERIFICATION
 }
 
-sealed class VerificationResult {
-    object VerificationProcessStarted : VerificationResult()
-    data class StageStarted(val message: String) : VerificationResult()
-    data class StageCompleted(val message: String) : VerificationResult()
-    data class StageError(val message: String) : VerificationResult()
-    data class VerificationCompleted(
-        val message: String,
-        val resultJsonString: String,
-        val userPortrait: Bitmap?,
-        val hasValidationErrors: Boolean
-    ) : VerificationResult()
+sealed class VerificationResultCallback {
+    object VerificationProcessStarted : VerificationResultCallback()
+    data class StageStarted(val message: String) : VerificationResultCallback()
+    data class StageCompleted(val message: String) : VerificationResultCallback()
+    data class StageError(val message: String) : VerificationResultCallback()
+    data class VerificationCompleted(val message: String, val hasValidationErrors: Boolean) : VerificationResultCallback()
 }
+
+

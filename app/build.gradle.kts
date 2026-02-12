@@ -6,21 +6,21 @@ plugins {
 
 android {
     namespace = "com.credenceid.sample"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.credenceid.sample"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
-        versionName = "1.0.2"
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             versionNameSuffix = "-release"
         }
@@ -32,8 +32,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+
+    kotlin {
+        jvmToolchain(17)
     }
 
     buildFeatures {

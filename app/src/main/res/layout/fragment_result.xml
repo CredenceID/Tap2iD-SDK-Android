@@ -4,37 +4,22 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="@dimen/root_padding"
     tools:context=".ui.ResultFragment">
-
-    <ImageView
-        android:id="@+id/userPortraitIv"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:contentDescription="@string/cd_user_portrait"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.2"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintWidth_percent="0.3" />
 
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.9"
         app:layout_constraintBottom_toTopOf="@id/doneButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/userPortraitIv">
+        app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/resultTv"
+        <WebView
+            android:id="@+id/webViewResult"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:layout_height="wrap_content" />
     </ScrollView>
 
     <com.google.android.material.button.MaterialButton

@@ -15,10 +15,6 @@
         <action
             android:id="@+id/action_homeFragment_to_nfcEngagementFragment"
             app:destination="@id/nfcEngagementFragment" />
-        <action
-            android:id="@+id/action_homeFragment_to_licenseVerificationFragment"
-            app:destination="@id/licenseVerificationFragment"
-            app:popUpTo="@id/licenseVerificationFragment" />
     </fragment>
     <fragment
         android:id="@+id/qrCodeEngagementFragment"
@@ -28,10 +24,12 @@
         <action
             android:id="@+id/action_qrCodeEngagementFragment_to_homeFragment"
             app:destination="@id/homeFragment"
-            app:popUpTo="@id/homeFragment" />
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_qrCodeEngagementFragment_to_resultFragment"
-            app:destination="@id/resultFragment">
+            app:destination="@id/resultFragment"
+            app:popUpTo="@id/homeFragment">
             <argument android:name="mDocResultJsonString" />
         </action>
     </fragment>
@@ -43,10 +41,12 @@
         <action
             android:id="@+id/action_nfcEngagementFragment_to_homeFragment"
             app:destination="@id/homeFragment"
-            app:popUpTo="@id/homeFragment" />
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_nfcEngagementFragment_to_resultFragment"
-            app:destination="@id/resultFragment" />
+            app:destination="@id/resultFragment"
+            app:popUpTo="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/resultFragment"
@@ -56,11 +56,8 @@
         <action
             android:id="@+id/action_resultFragment_to_homeFragment"
             app:destination="@id/homeFragment"
-            app:popUpTo="@id/homeFragment" />
-        <argument
-            android:name="mDocResultJsonString"
-            app:argType="string"
-            app:nullable="true" />
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true" />
     </fragment>
     <fragment
         android:id="@+id/licenseVerificationFragment"
@@ -69,6 +66,8 @@
         tools:layout="@layout/fragment_license_verification">
         <action
             android:id="@+id/action_licenseVerificationFragment_to_homeFragment"
-            app:destination="@id/homeFragment" />
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/licenseVerificationFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 </navigation>

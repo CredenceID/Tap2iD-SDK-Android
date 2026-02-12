@@ -38,9 +38,8 @@ class HomeFragment : Fragment() {
 
     private fun setupView() {
         binding.titleTv.text = sharedViewModel
-            .getTitle(Screen.HOME)
+            .getTitle(Screen.HOME, requireContext())
             .plus("\n")
-            .plus("Device ID : ${Utils.getAndroidId(requireContext())}")
 
         binding.qrButton.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_qrCodeEngagementFragment)

@@ -37,7 +37,7 @@ class LicenseVerificationFragment : Fragment() {
     }
 
     private fun setupView() {
-        binding.titleTv.text = sharedViewModel.getTitle(Screen.LICENSE_KEY_VERIFICATION)
+        binding.titleTv.text = sharedViewModel.getTitle(Screen.LICENSE_KEY_VERIFICATION, requireContext())
 
         binding.licenseKeyTL.setEndIconOnClickListener {
             binding.licenseKeyEt.text?.clear()
@@ -50,6 +50,7 @@ class LicenseVerificationFragment : Fragment() {
             }
         }
         binding.verifyButton.setOnClickListener {
+            sharedViewModel.clearVerificationData()
             binding.progressCircular.visibility = View.VISIBLE
             binding.nextButton.isEnabled = false
             sharedViewModel.initializeSdk(

@@ -1,9 +1,12 @@
 package com.credenceid.sample.ui
 
+import android.graphics.Color
 import android.os.Bundle
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -18,7 +21,6 @@ class ResultFragment : Fragment() {
     private val binding
         get() = _binding!!
 
-    private val args: ResultFragmentArgs by navArgs()
     private val sharedViewModel: SharedViewModel by activityViewModels()
 
     override fun onCreateView(
@@ -34,18 +36,23 @@ class ResultFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Portrait
-        sharedViewModel.userPortraitLiveData?.let {
-            binding.userPortraitIv.setImageBitmap(it)
+        val webView = view.findViewById<WebView>(R.id.webViewResult)
+
+        webView.settings.apply {
+            loadsImagesAutomatically = true
+            blockNetworkImage = false
+            useWideViewPort = false
+            loadWithOverviewMode = true
         }
 
-        //mDL Attributes
-        val identityDataJsonString = args.mDocResultJsonString
-        identityDataJsonString?.let {
-            binding.resultTv.text = it
-        }
+        webView.setBackgroundColor(Color.TRANSPARENT)
 
+        val htmlString = sharedViewModel.storedVerificationHtml
+        if (!htmlString.isNullOrEmpty()) {
+            webView.loadDataWithBaseURL(null, htmlString, "text/html", "utf-8", null)
+        }
         binding.doneButton.setOnClickListener {
+            sharedViewModel.clearVerificationData()
             findNavController().navigate(R.id.action_resultFragment_to_homeFragment)
         }
     }

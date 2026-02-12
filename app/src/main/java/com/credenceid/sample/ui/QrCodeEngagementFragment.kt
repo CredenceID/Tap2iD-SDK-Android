@@ -16,7 +16,7 @@ import androidx.navigation.fragment.findNavController
 import com.credenceid.sample.R
 import com.credenceid.sample.common.Screen
 import com.credenceid.sample.common.SharedViewModel
-import com.credenceid.sample.common.VerificationResult
+import com.credenceid.sample.common.VerificationResultCallback
 import com.credenceid.sample.databinding.FragmentQrCodeEngagementBinding
 import com.credenceid.sample.utils.BarcodeScannerCallback
 import com.credenceid.sample.utils.QRCodeScanner
@@ -65,7 +65,7 @@ class QrCodeEngagementFragment : Fragment() {
     }
 
     private fun setupView() {
-        binding.titleTv.text = sharedViewModel.getTitle(Screen.QR)
+        binding.titleTv.text = sharedViewModel.getTitle(Screen.QR, requireContext())
         binding.cancelButton.setOnClickListener {
             findNavController().navigate(R.id.action_qrCodeEngagementFragment_to_homeFragment)
         }
@@ -119,27 +119,27 @@ class QrCodeEngagementFragment : Fragment() {
     private fun verifyWithQr(qrCode: String) {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                sharedViewModel.verifyWithQr(context = requireContext(), qrCodeString = qrCode).collect { result ->
+                sharedViewModel.verifyWithQr(qrCodeString = qrCode).collect { result ->
                     when (result) {
-                        is VerificationResult.StageCompleted -> {
+                        is VerificationResultCallback.StageCompleted -> {
                             if (isAdded) {
                                 setStatusOnUi(result.message)
                             }
                         }
 
-                        is VerificationResult.StageError -> {
+                        is VerificationResultCallback.StageError -> {
                             if (isAdded) {
                                 setStatusOnUi(result.message)
                             }
                         }
 
-                        is VerificationResult.StageStarted -> {
+                        is VerificationResultCallback.StageStarted -> {
                             if (isAdded) {
                                 setStatusOnUi(result.message)
                             }
                         }
 
-                        is VerificationResult.VerificationCompleted -> {
+                        is VerificationResultCallback.VerificationCompleted -> {
                             if (isAdded) {
                                 if (result.hasValidationErrors) {
                                     setStatusOnUi("Verification Successful with some validation failures")
@@ -148,12 +148,12 @@ class QrCodeEngagementFragment : Fragment() {
                                     setStatusOnUi("Verification Successful")
                                 }
 
-                                val directions = QrCodeEngagementFragmentDirections.actionQrCodeEngagementFragmentToResultFragment(result.resultJsonString)
+                                val directions = QrCodeEngagementFragmentDirections.actionQrCodeEngagementFragmentToResultFragment(result.message)
                                 findNavController().navigate(directions)
                             }
                         }
 
-                        VerificationResult.VerificationProcessStarted -> {
+                        VerificationResultCallback.VerificationProcessStarted -> {
                             if (isAdded) {
                                 setStatusOnUi("Verifying mDL...")
                             }
