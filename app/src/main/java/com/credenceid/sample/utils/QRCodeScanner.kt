@@ -28,6 +28,7 @@ class QRCodeScanner(
     private val previewView: PreviewView,
     private val lifecycleOwner: LifecycleOwner,
     private val barcodeScannerCallback: BarcodeScannerCallback,
+    private val barcodeFormats: Int = Barcode.FORMAT_QR_CODE,
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -74,7 +75,9 @@ class QRCodeScanner(
             analysisUseCase?.let { provider.unbind(it) }
 
             val barcodeScanner = BarcodeScanning.getClient(
-                BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+                BarcodeScannerOptions.Builder()
+                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                    .build()
             )
 
             analysisUseCase = ImageAnalysis.Builder()
@@ -100,10 +103,16 @@ class QRCodeScanner(
 
         barcodeScanner.process(inputImage)
             .addOnSuccessListener { barcodes ->
-                if (barcodes.isNotEmpty()) {
-                    isBarcodeDetected = true
-                    barcodes.forEach { barcode ->
-                        barcodeScannerCallback.onBarcodeDetected(barcode.rawValue)
+                val match = barcodes.firstOrNull { it.format == barcodeFormats }
+                if (match != null) {
+                    val raw = match.rawBytes
+                        ?.toString(Charsets.ISO_8859_1)
+                        ?: match.rawValue
+                    val isValid = raw != null &&
+                        (barcodeFormats != Barcode.FORMAT_PDF417 || raw.startsWith("@"))
+                    if (isValid) {
+                        isBarcodeDetected = true
+                        barcodeScannerCallback.onBarcodeDetected(raw)
                     }
                 }
                 imageProxy.close()

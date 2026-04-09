@@ -51,7 +51,7 @@ android {
 
 dependencies {
     //Tap2iD SDK
-    implementation(libs.tap2idSdk)
+    implementation("com.credenceid:tap2idSdk:2.1.0")
 
     //AndroidX & Kotlin
     implementation(libs.androidx.core.ktx)

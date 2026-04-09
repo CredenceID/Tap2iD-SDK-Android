@@ -14,4 +14,6 @@
     <string name="cd_portrait_image">portrait_image</string>
     <string name="cd_signature_image">signature_image</string>
     <string name="cd_user_portrait">user_portrait</string>
+    <string name="scan_dl">Scan DL</string>
+    <string name="pdf417_scanning">Point camera at the PDF417 barcode on the back of the driver\'s license</string>
 </resources>

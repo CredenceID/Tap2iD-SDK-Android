@@ -20,6 +20,7 @@ val nexusSnapshotUrl: String = nexusProperties.getProperty("nexus_snapshot_url")
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")

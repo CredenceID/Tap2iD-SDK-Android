@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.credenceid.sample.BuildConfig
 import com.credenceid.sample.utils.TAG
 import com.credenceid.sample.utils.Utils
+import com.credenceid.sample.utils.PDF417ReportGenerator
 import com.credenceid.sample.utils.VerificationReportGenerator
 import com.credenceid.tap2idSdk.api.InitSdkResultListener
 import com.credenceid.tap2idSdk.api.MdocVerificationListener
@@ -27,6 +28,7 @@ import com.credenceid.tap2idSdk.core.model.VerificationResult
 import com.credenceid.tap2idSdk.core.model.VerificationStatus
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
@@ -105,6 +107,13 @@ class SharedViewModel : ViewModel() {
         }
     }
 
+    suspend fun verifyPDF417FromDL(barcodeString: String) {
+        val result = withContext(Dispatchers.Default) {
+            Tap2iDSdk.verifyPDF417FromDL(barcodeString)
+        }
+        storedVerificationHtml = PDF417ReportGenerator.generateHtml(result)
+    }
+
     fun clearVerificationData() {
         storedVerificationHtml = null
         Log.d(TAG, "Verification data cleared from ViewModel")
@@ -116,6 +125,7 @@ class SharedViewModel : ViewModel() {
             Screen.NFC -> "NFC Engagement"
             Screen.QR -> "QR Engagement"
             Screen.RESULT -> "mDL Data"
+            Screen.PDF417 -> "PDF417 Scan"
             Screen.LICENSE_KEY_VERIFICATION -> "Please enter License Key\nto verify with VwC\n---\nApp Version : ${BuildConfig.VERSION_NAME}\nSDK Version : ${Tap2iDSdk.getSdkVersion()}\nDeviceID : ${Utils.getAndroidId(context)}\nPackage Name : ${context.packageName}"
         }
     }
@@ -166,7 +176,7 @@ class SharedViewModel : ViewModel() {
 }
 
 enum class Screen {
-    HOME, NFC, QR, RESULT, LICENSE_KEY_VERIFICATION
+    HOME, NFC, QR, PDF417, RESULT, LICENSE_KEY_VERIFICATION
 }
 
 sealed class VerificationResultCallback {

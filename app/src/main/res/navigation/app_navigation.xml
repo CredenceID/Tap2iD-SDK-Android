@@ -15,6 +15,24 @@
         <action
             android:id="@+id/action_homeFragment_to_nfcEngagementFragment"
             app:destination="@id/nfcEngagementFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_pdf417ScanFragment"
+            app:destination="@id/pdf417ScanFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/pdf417ScanFragment"
+        android:name="com.credenceid.sample.ui.PDF417ScanFragment"
+        android:label="fragment_pdf417_scan"
+        tools:layout="@layout/fragment_pdf417_scan">
+        <action
+            android:id="@+id/action_pdf417ScanFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_pdf417ScanFragment_to_resultFragment"
+            app:destination="@id/resultFragment"
+            app:popUpTo="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/qrCodeEngagementFragment"
