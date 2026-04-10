@@ -3,6 +3,7 @@ package com.credenceid.sample.utils
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import android.util.Size
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -10,6 +11,9 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -76,13 +80,24 @@ class QRCodeScanner(
 
             val barcodeScanner = BarcodeScanning.getClient(
                 BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                    .setBarcodeFormats(barcodeFormats)
                     .build()
             )
 
+            val analysisResolutionSelector = ResolutionSelector.Builder()
+                .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+                .setResolutionStrategy(
+                    ResolutionStrategy(
+                        Size(1920, 1080),
+                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                    )
+                )
+                .build()
+
             analysisUseCase = ImageAnalysis.Builder()
-                .setTargetAspectRatio(screenAspectRatio)
+                .setResolutionSelector(analysisResolutionSelector)
                 .setTargetRotation(previewView.display.rotation)
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build().also { useCase ->
                     useCase.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
                         processImageProxy(barcodeScanner, imageProxy)
@@ -98,29 +113,37 @@ class QRCodeScanner(
             imageProxy.close()
             return
         }
-        val mediaImage = imageProxy.image ?: return
+        val mediaImage = imageProxy.image
+        if (mediaImage == null) {
+            imageProxy.close()
+            return
+        }
         val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
         barcodeScanner.process(inputImage)
             .addOnSuccessListener { barcodes ->
                 val match = barcodes.firstOrNull { it.format == barcodeFormats }
                 if (match != null) {
+                    // Prefer rawBytes decoded as ISO-8859-1 to preserve binary AAMVA content.
+                    // Fall back to rawValue only if rawBytes is unavailable.
                     val raw = match.rawBytes
+                        ?.takeIf { it.isNotEmpty() }
                         ?.toString(Charsets.ISO_8859_1)
                         ?: match.rawValue
-                    val isValid = raw != null &&
+                    val isAamvaValid = raw != null &&
                         (barcodeFormats != Barcode.FORMAT_PDF417 || raw.startsWith("@"))
-                    if (isValid) {
+                    if (isAamvaValid) {
                         isBarcodeDetected = true
                         barcodeScannerCallback.onBarcodeDetected(raw)
+                    } else {
+                        Log.w(TAG, "PDF417 detected but failed AAMVA validation: " +
+                            "rawBytes=${match.rawBytes?.size}, startsWithAt=${raw?.startsWith("@")}")
                     }
                 }
-                imageProxy.close()
             }
             .addOnFailureListener {
                 barcodeScannerCallback.onBarcodeDetectionFailed(it.message ?: "Barcode scanning failed.")
                 Log.e(TAG, it.message ?: "Barcode scanning failed.")
-                imageProxy.close()
             }
             .addOnCompleteListener {
                 imageProxy.close()
