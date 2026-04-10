@@ -115,14 +115,6 @@ object PDF417ReportGenerator {
         // Classification details
         sb.append("<div class='section'>")
         sb.append("<div class='group-title'>CLASSIFICATION</div>")
-        val methodLabel = when (result.method) {
-            "crypto_verified" -> "Cryptographic Verification"
-            "mlp"             -> "Machine Learning Classifier"
-            "rule_override"   -> "Rule Override"
-            "pass"            -> "All Checks Passed"
-            else              -> result.method
-        }
-        sb.append(renderDataRow("Method", methodLabel))
         sb.append(renderDataRow("State", result.stateCode ?: "Unknown"))
 
         sb.append("<div class='group-title'>CRYPTO SIGNATURES</div>")
@@ -133,33 +125,37 @@ object PDF417ReportGenerator {
         // Identity fields
         sb.append("<div class='section'>")
         sb.append("<div class='group-title'>IDENTITY</div>")
-        val firstName = result.fields["DAC"]
-        val lastName  = result.fields["DCS"]
+        val firstName = result.fields["DAC"]?.toString()
+        val lastName  = result.fields["DCS"]?.toString()
         val fullName  = listOfNotNull(firstName, lastName).joinToString(" ").ifEmpty { "N/A" }
         sb.append(renderDataRow("Name", fullName))
-        sb.append(renderDataRow("License Number", result.fields["DAQ"] ?: "N/A"))
-        sb.append(renderDataRow("Date of Birth", result.birthDate ?: "N/A"))
+        sb.append(renderDataRow("License Number", result.fields["DAQ"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Date of Birth", result.fields["DBB"]?.toString() ?: "N/A"))
 
         val today = java.time.LocalDate.now().toString()
-        val expiryHtml = result.expiryDate?.let { expiry ->
-            if (expiry < today) "<span class='expired-value'>$expiry (Expired)</span>" else expiry
-        } ?: "N/A"
+        val expiry = result.fields["DBA"]?.toString()
+        val expiryHtml = if (expiry != null && expiry < today) {
+            "<span class='expired-value'>$expiry (Expired)</span>"
+        } else {
+            expiry ?: "N/A"
+        }
         sb.append(renderDataRow("Expiry Date", expiryHtml))
-        sb.append(renderDataRow("Issue Date", result.issueDate ?: "N/A"))
+        sb.append(renderDataRow("Issue Date", result.fields["DBD"]?.toString() ?: "N/A"))
 
-        val sexLabel = when (result.fields["DBC"]) {
+        val dbc = result.fields["DBC"]?.toString()
+        val sexLabel = when (dbc) {
             "1" -> "Male"
             "2" -> "Female"
-            else -> result.fields["DBC"] ?: "N/A"
+            else -> dbc ?: "N/A"
         }
         sb.append(renderDataRow("Sex", sexLabel))
-        sb.append(renderDataRow("Height", result.fields["DAU"] ?: "N/A"))
-        sb.append(renderDataRow("Eye Color", result.fields["DAY"] ?: "N/A"))
+        sb.append(renderDataRow("Height", result.fields["DAU"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Eye Color", result.fields["DAY"]?.toString() ?: "N/A"))
 
         sb.append("<div class='group-title'>ADDRESS</div>")
-        sb.append(renderDataRow("Street", result.fields["DAG"] ?: "N/A"))
-        sb.append(renderDataRow("City", result.fields["DAI"] ?: "N/A"))
-        sb.append(renderDataRow("Postal Code", result.fields["DAK"] ?: "N/A"))
+        sb.append(renderDataRow("Street", result.fields["DAG"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("City", result.fields["DAI"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Postal Code", result.fields["DAK"]?.toString() ?: "N/A"))
         sb.append("</div>")
 
         // Errors
