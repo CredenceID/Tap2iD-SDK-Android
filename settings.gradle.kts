@@ -2,7 +2,7 @@ import java.util.Properties
 
 pluginManagement {
     repositories {
-        mavenLocal()
+       // mavenLocal()
         google()
         mavenCentral()
         gradlePluginPortal()

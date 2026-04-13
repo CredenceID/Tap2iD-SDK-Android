@@ -117,9 +117,6 @@ object PDF417ReportGenerator {
         sb.append("<div class='group-title'>CLASSIFICATION</div>")
         sb.append(renderDataRow("State", result.stateCode ?: "Unknown"))
 
-        sb.append("<div class='group-title'>CRYPTO SIGNATURES</div>")
-        sb.append(renderTagCheck("CA ZCE (DMV Digital)", result.cadmvVerified))
-        sb.append(renderTagCheck("NY ZNB (Digital)", result.nydmvVerified))
         sb.append("</div>")
 
         // Identity fields
@@ -132,12 +129,18 @@ object PDF417ReportGenerator {
         sb.append(renderDataRow("License Number", result.fields["DAQ"]?.toString() ?: "N/A"))
         sb.append(renderDataRow("Date of Birth", result.fields["DBB"]?.toString() ?: "N/A"))
 
-        val today = java.time.LocalDate.now().toString()
         val expiry = result.fields["DBA"]?.toString()
-        val expiryHtml = if (expiry != null && expiry < today) {
-            "<span class='expired-value'>$expiry (Expired)</span>"
-        } else {
-            expiry ?: "N/A"
+        val expiryHtml = run {
+            val formatter = java.time.format.DateTimeFormatter.ofPattern("MMddyyyy")
+            val expiryDate = expiry?.let {
+                runCatching { java.time.LocalDate.parse(it, formatter) }.getOrNull()
+            }
+            when {
+                expiryDate == null -> expiry ?: "N/A"
+                expiryDate.isBefore(java.time.LocalDate.now()) ->
+                    "<span class='expired-value'>$expiry (Expired)</span>"
+                else -> expiry
+            }
         }
         sb.append(renderDataRow("Expiry Date", expiryHtml))
         sb.append(renderDataRow("Issue Date", result.fields["DBD"]?.toString() ?: "N/A"))

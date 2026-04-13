@@ -147,8 +147,6 @@ object VerificationReportGenerator {
             val auth = doc.authentication
             sb.append("<div class='group-title'>SECURITY & TRUST</div>")
 
-            sb.append(renderSimpleCheck("Issuer Signature", auth.securityChecks.isIssuerSignedValid))
-            sb.append(renderSimpleCheck("Device Signature", auth.securityChecks.isDeviceSignedValid))
             sb.append(renderSimpleCheck("Data Integrity", auth.securityChecks.areDigestsValid))
 
             val isTrusted = auth.trustAttributes.chainStatus == TrustStatus.VERIFIED
