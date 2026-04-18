@@ -107,9 +107,9 @@ class SharedViewModel : ViewModel() {
         }
     }
 
-    suspend fun verifyPDF417FromDL(barcodeString: String) {
+    suspend fun verifyPdf417(barcodeString: String) {
         val result = withContext(Dispatchers.Default) {
-            Tap2iDSdk.verifyPDF417FromDL(barcodeString)
+            Tap2iDSdk.verifyPdf417(barcodeString)
         }
         storedVerificationHtml = PDF417ReportGenerator.generateHtml(result)
     }

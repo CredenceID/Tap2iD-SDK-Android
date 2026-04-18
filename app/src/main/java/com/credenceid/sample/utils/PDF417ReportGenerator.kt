@@ -1,11 +1,11 @@
 package com.credenceid.sample.utils
 
-import com.credenceid.tap2idSdk.api.models.PDF417VerificationResult
-import com.credenceid.tap2idSdk.api.models.PDF417Verdict
+import com.credenceid.tap2idSdk.core.model.Pdf417VerificationResult
+import com.credenceid.tap2idSdk.core.model.PDF417Verdict
 
 object PDF417ReportGenerator {
 
-    fun generateHtml(result: PDF417VerificationResult): String {
+    fun generateHtml(result: Pdf417VerificationResult): String {
         val css = """
         <style>
             :root {

@@ -116,7 +116,7 @@ class PDF417ScanFragment : Fragment() {
     private fun verifyBarcode(barcode: String) {
         lifecycleScope.launch {
             setStatus("Verifying...")
-            sharedViewModel.verifyPDF417FromDL(barcode)
+            sharedViewModel.verifyPdf417(barcode)
             if (isAdded) {
                 findNavController().navigate(R.id.action_pdf417ScanFragment_to_resultFragment)
             }
