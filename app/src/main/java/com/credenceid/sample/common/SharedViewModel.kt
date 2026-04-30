@@ -61,6 +61,7 @@ class SharedViewModel : ViewModel() {
                 override fun onInitializationSuccess(result: SdkInitializationResult) {
                     if (result.licenseVerificationResult.isValid) {
                         Log.d(TAG, "SDK initialized")
+                        Log.i("CID-AC5", "version=" + com.credenceid.pdf417.CidPDF417Classifier.version())
                         val isValid = if (result.licenseVerificationResult.isValid) "VALID" else "EXPIRED"
                         val resultData = buildString {
                             append("Licence is $isValid\n")

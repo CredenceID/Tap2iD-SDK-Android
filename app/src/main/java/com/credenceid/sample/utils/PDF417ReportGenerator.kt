@@ -122,18 +122,17 @@ object PDF417ReportGenerator {
         // Identity fields
         sb.append("<div class='section'>")
         sb.append("<div class='group-title'>IDENTITY</div>")
-        val firstName = result.fields["DAC"]?.toString()
-        val lastName  = result.fields["DCS"]?.toString()
+        val firstName = result.fields["given_name"]?.toString()
+        val lastName  = result.fields["family_name"]?.toString()
         val fullName  = listOfNotNull(firstName, lastName).joinToString(" ").ifEmpty { "N/A" }
         sb.append(renderDataRow("Name", fullName))
-        sb.append(renderDataRow("License Number", result.fields["DAQ"]?.toString() ?: "N/A"))
-        sb.append(renderDataRow("Date of Birth", result.fields["DBB"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("License Number", result.fields["document_number"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Date of Birth", result.fields["birth_date"]?.toString() ?: "N/A"))
 
-        val expiry = result.fields["DBA"]?.toString()
+        val expiry = result.fields["expiry_date"]?.toString()
         val expiryHtml = run {
-            val formatter = java.time.format.DateTimeFormatter.ofPattern("MMddyyyy")
             val expiryDate = expiry?.let {
-                runCatching { java.time.LocalDate.parse(it, formatter) }.getOrNull()
+                runCatching { java.time.LocalDate.parse(it) }.getOrNull()
             }
             when {
                 expiryDate == null -> expiry ?: "N/A"
@@ -143,22 +142,25 @@ object PDF417ReportGenerator {
             }
         }
         sb.append(renderDataRow("Expiry Date", expiryHtml))
-        sb.append(renderDataRow("Issue Date", result.fields["DBD"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Issue Date", result.fields["issue_date"]?.toString() ?: "N/A"))
 
-        val dbc = result.fields["DBC"]?.toString()
-        val sexLabel = when (dbc) {
-            "1" -> "Male"
-            "2" -> "Female"
-            else -> dbc ?: "N/A"
+        val sexCode = (result.fields["sex"] as? Number)?.toInt()
+        val sexLabel = when (sexCode) {
+            1 -> "Male"
+            2 -> "Female"
+            0, 9 -> "Unspecified"
+            else -> "N/A"
         }
         sb.append(renderDataRow("Sex", sexLabel))
-        sb.append(renderDataRow("Height", result.fields["DAU"]?.toString() ?: "N/A"))
-        sb.append(renderDataRow("Eye Color", result.fields["DAY"]?.toString() ?: "N/A"))
+        val heightCm = (result.fields["height"] as? Number)?.toInt()
+        sb.append(renderDataRow("Height", heightCm?.let { "$it cm" } ?: "N/A"))
+        val eyeColour = (result.fields["eye_colour"] as? String)?.replaceFirstChar { it.uppercase() }
+        sb.append(renderDataRow("Eye Color", eyeColour ?: "N/A"))
 
         sb.append("<div class='group-title'>ADDRESS</div>")
-        sb.append(renderDataRow("Street", result.fields["DAG"]?.toString() ?: "N/A"))
-        sb.append(renderDataRow("City", result.fields["DAI"]?.toString() ?: "N/A"))
-        sb.append(renderDataRow("Postal Code", result.fields["DAK"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Street", result.fields["resident_address"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("City", result.fields["resident_city"]?.toString() ?: "N/A"))
+        sb.append(renderDataRow("Postal Code", result.fields["resident_postal_code"]?.toString() ?: "N/A"))
         sb.append("</div>")
 
         // Errors
