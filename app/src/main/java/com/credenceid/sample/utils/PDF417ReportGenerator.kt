@@ -1,11 +1,20 @@
 package com.credenceid.sample.utils
 
+import android.util.Log
 import com.credenceid.tap2idSdk.core.model.Pdf417VerificationResult
 import com.credenceid.tap2idSdk.core.model.PDF417Verdict
 
 object PDF417ReportGenerator {
 
+    private const val TAG = "PDF417ReportGenerator"
+
     fun generateHtml(result: Pdf417VerificationResult): String {
+        Log.i(
+            TAG,
+            "generateHtml() ENTRY  verdict=${result.verdict} " +
+                "confidenceLevel=${result.confidenceLevel} stateCode=${result.stateCode} " +
+                "errors=${result.errors.size} fields=${result.fields.size}",
+        )
         val css = """
         <style>
             :root {
@@ -174,7 +183,20 @@ object PDF417ReportGenerator {
         }
 
         sb.append("</div></body></html>")
-        return sb.toString()
+        val html = sb.toString()
+
+        fun snippet(needle: String, before: Int = 0, after: Int = 200): String {
+            val idx = html.indexOf(needle)
+            if (idx < 0) return "<missing: $needle>"
+            val start = (idx - before).coerceAtLeast(0)
+            val end = (idx + needle.length + after).coerceAtMost(html.length)
+            return html.substring(start, end)
+        }
+
+        Log.i(TAG, "generateHtml() EXIT  htmlLength=${html.length}")
+        Log.i(TAG, "  verdictBadgeSnippet=${snippet("verdict-badge ")}")
+        Log.i(TAG, "  confidenceContentSnippet=${snippet("Confidence:")}")
+        return html
     }
 
     private fun renderDataRow(key: String, valueHtml: String): String = """

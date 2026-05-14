@@ -109,8 +109,23 @@ class SharedViewModel : ViewModel() {
     }
 
     suspend fun verifyPdf417(barcodeString: String) {
-        val result = withContext(Dispatchers.Default) {
-            Tap2iDSdk.verifyPdf417(barcodeString)
+        Log.i(PDF417_LOG_TAG, "verifyPdf417 starting (barcodeLength=${barcodeString.length})")
+        val result = try {
+            withContext(Dispatchers.Default) {
+                Tap2iDSdk.verifyPdf417(barcodeString)
+            }
+        } catch (t: Throwable) {
+            Log.e(PDF417_LOG_TAG, "verifyPdf417 threw: ${t.javaClass.simpleName}: ${t.message}", t)
+            throw t
+        }
+        Log.i(
+            PDF417_LOG_TAG,
+            "verdict=${result.verdict} confidence=${result.confidenceLevel} " +
+                "stateCode=${result.stateCode} cadmvVerified=${result.cadmvVerified} " +
+                "nydmvVerified=${result.nydmvVerified} errorCount=${result.errors.size}",
+        )
+        result.errors.forEachIndexed { i, err ->
+            Log.i(PDF417_LOG_TAG, "error[$i] code=${err.code} message=${err.message}")
         }
         storedVerificationHtml = PDF417ReportGenerator.generateHtml(result)
     }
@@ -160,6 +175,10 @@ class SharedViewModel : ViewModel() {
                 producer.trySend(VerificationResultCallback.StageStarted("Started: $stage"))
             }
         }
+
+    private companion object {
+        private const val PDF417_LOG_TAG = "PDF417Verify"
+    }
 
     private fun logResultAsJson(result: VerificationResult) {
         try {

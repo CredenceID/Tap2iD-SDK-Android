@@ -3,6 +3,7 @@ package com.credenceid.sample.ui
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Html
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -48,8 +49,17 @@ class ResultFragment : Fragment() {
         webView.setBackgroundColor(Color.TRANSPARENT)
 
         val htmlString = sharedViewModel.storedVerificationHtml
+        Log.i(
+            "ResultFragment",
+            "onViewCreated  htmlIsNull=${htmlString == null}  htmlLength=${htmlString?.length ?: 0}  " +
+                "containsConfidenceLabel=${htmlString?.contains("confidence-label") ?: false}  " +
+                "containsConfidenceText=${htmlString?.contains("Confidence:") ?: false}",
+        )
         if (!htmlString.isNullOrEmpty()) {
             webView.loadDataWithBaseURL(null, htmlString, "text/html", "utf-8", null)
+            Log.i("ResultFragment", "loadDataWithBaseURL() called  htmlLength=${htmlString.length}")
+        } else {
+            Log.w("ResultFragment", "WebView NOT loaded because storedVerificationHtml is null/empty")
         }
         binding.doneButton.setOnClickListener {
             sharedViewModel.clearVerificationData()

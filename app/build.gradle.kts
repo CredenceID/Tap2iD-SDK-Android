@@ -52,7 +52,7 @@ android {
 dependencies {
     //Tap2iD SDK
     implementation(libs.tap2idSdk)
-    implementation("com.credenceid:c-pdf417-classifier:2.0.0")
+    implementation("com.credenceid:c-pdf417-classifier:2.0.1-RC1")
 
     //AndroidX & Kotlin
     implementation(libs.androidx.core.ktx)
