@@ -8,6 +8,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.credenceid.pdf417.CidPDF417Classifier
 import com.credenceid.sample.BuildConfig
 import com.credenceid.sample.utils.TAG
 import com.credenceid.sample.utils.Utils
@@ -37,15 +38,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.concurrent.atomic.AtomicInteger
 
 class SharedViewModel : ViewModel() {
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
+    private var appContext: Context? = null
+    private val scanCounter = AtomicInteger(0)
+
     var storedVerificationHtml: String? = null
         private set
 
     fun initializeSdk(licenseKey: String, applicationContext: Context, resultCallback: (Result<String>) -> Unit) {
+        appContext = applicationContext
         viewModelScope.launch {
             val sdkConfig = SdkConfigBuilder()
                 .setApplicationContext(applicationContext)
@@ -127,6 +133,21 @@ class SharedViewModel : ViewModel() {
         result.errors.forEachIndexed { i, err ->
             Log.i(PDF417_LOG_TAG, "error[$i] code=${err.code} message=${err.message}")
         }
+        val classifierResult = runCatching {
+            val configJson = appContext!!.assets.open("classification_config.json").bufferedReader().readText()
+            CidPDF417Classifier.create(configJson).use { it.classify(barcodeString) }
+        }.getOrNull()
+
+        val n = scanCounter.incrementAndGet()
+        val flatBarcode = barcodeString.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ')
+        Log.i(
+            CARD_SCANNER_LOG_TAG,
+            "$n card scanner ; $flatBarcode;${result.confidenceLevel};" +
+                "MLP ── prob=${String.format("%.4f", classifierResult?.mlpProb ?: 0f)};" +
+                "AE  ── error=${String.format("%.4f", classifierResult?.aeError ?: 0f)};" +
+                "threshold=${String.format("%.4f", classifierResult?.aeThreshold ?: 0f)} ;" +
+                "hasModel=${classifierResult?.aeHasModel ?: false}"
+        )
         storedVerificationHtml = PDF417ReportGenerator.generateHtml(result)
     }
 
@@ -178,6 +199,7 @@ class SharedViewModel : ViewModel() {
 
     private companion object {
         private const val PDF417_LOG_TAG = "PDF417Verify"
+        private const val CARD_SCANNER_LOG_TAG = "CardScannerTest"
     }
 
     private fun logResultAsJson(result: VerificationResult) {
