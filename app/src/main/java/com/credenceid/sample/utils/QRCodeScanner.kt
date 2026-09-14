@@ -28,6 +28,7 @@ class QRCodeScanner(
     private val previewView: PreviewView,
     private val lifecycleOwner: LifecycleOwner,
     private val barcodeScannerCallback: BarcodeScannerCallback,
+    private val barcodeFormat: Int = Barcode.FORMAT_QR_CODE,
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -74,7 +75,7 @@ class QRCodeScanner(
             analysisUseCase?.let { provider.unbind(it) }
 
             val barcodeScanner = BarcodeScanning.getClient(
-                BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+                BarcodeScannerOptions.Builder().setBarcodeFormats(barcodeFormat).build()
             )
 
             analysisUseCase = ImageAnalysis.Builder()

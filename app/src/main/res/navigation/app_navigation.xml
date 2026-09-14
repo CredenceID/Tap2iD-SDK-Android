@@ -15,6 +15,9 @@
         <action
             android:id="@+id/action_homeFragment_to_nfcEngagementFragment"
             app:destination="@id/nfcEngagementFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_pdf417EngagementFragment"
+            app:destination="@id/pdf417EngagementFragment" />
     </fragment>
     <fragment
         android:id="@+id/qrCodeEngagementFragment"
@@ -45,6 +48,21 @@
             app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_nfcEngagementFragment_to_resultFragment"
+            app:destination="@id/resultFragment"
+            app:popUpTo="@id/homeFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/pdf417EngagementFragment"
+        android:name="com.credenceid.sample.ui.Pdf417EngagementFragment"
+        android:label="fragment_pdf417_engagement"
+        tools:layout="@layout/fragment_pdf417_engagement">
+        <action
+            android:id="@+id/action_pdf417EngagementFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_pdf417EngagementFragment_to_resultFragment"
             app:destination="@id/resultFragment"
             app:popUpTo="@id/homeFragment" />
     </fragment>

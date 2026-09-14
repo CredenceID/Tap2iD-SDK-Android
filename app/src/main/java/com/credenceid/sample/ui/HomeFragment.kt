@@ -48,6 +48,10 @@ class HomeFragment : Fragment() {
         binding.nfcButton.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_nfcEngagementFragment)
         }
+
+        binding.pdf417Button.setOnClickListener {
+            findNavController().navigate(R.id.action_homeFragment_to_pdf417EngagementFragment)
+        }
     }
 
     override fun onDestroyView() {

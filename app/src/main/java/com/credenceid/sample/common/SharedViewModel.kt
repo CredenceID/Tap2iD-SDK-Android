@@ -22,6 +22,8 @@ import com.credenceid.tap2idSdk.api.models.SdkConfigBuilder
 import com.credenceid.tap2idSdk.api.models.SdkInitializationResult
 import com.credenceid.tap2idSdk.api.models.VerificationStage
 // Updated Import: TrustResult -> TrustStatus
+import com.credenceid.tap2idSdk.core.model.PDF417Verdict
+import com.credenceid.tap2idSdk.core.model.Pdf417VerificationRequest
 import com.credenceid.tap2idSdk.core.model.TrustStatus
 import com.credenceid.tap2idSdk.core.model.VerificationResult
 import com.credenceid.tap2idSdk.core.model.VerificationStatus
@@ -105,6 +107,44 @@ class SharedViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Verifies a raw PDF417 (AAMVA driver's-license) barcode through the SDK and emits the same
+     * [VerificationResultCallback] events the QR/NFC flows use, so the UI layer stays uniform.
+     *
+     * Unlike mDoc verification there are no intermediate stages - it's a single suspend call - so
+     * this emits [VerificationResultCallback.VerificationProcessStarted] then a terminal
+     * [VerificationResultCallback.VerificationCompleted]. The SDK reports its documented failure
+     * modes (1000 SDK-not-initialized, 1001 classification-failed, 1002 no-profile) as a result
+     * with [PDF417Verdict.ERROR] and a populated `errors` list, which the HTML report renders.
+     * Any unexpected throwable (e.g. the native classifier missing on a non-arm64 device) is
+     * caught and surfaced as [VerificationResultCallback.StageError] instead of crashing.
+     */
+    fun verifyPdf417(pdf417Value: String) = callbackFlow {
+        send(VerificationResultCallback.VerificationProcessStarted)
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val result = Tap2iDSdk.verifyPdf417(Pdf417VerificationRequest(pdf417Value))
+                Log.d(TAG, "PDF417 verdict=${result.verdict} confidence=${result.confidenceLevel} errors=${result.errors.size} warnings=${result.warnings.size}")
+                storedVerificationHtml = VerificationReportGenerator.generateHtml(result)
+                val hasIssues = result.verdict != PDF417Verdict.REAL || result.errors.isNotEmpty() || result.warnings.isNotEmpty()
+                trySend(
+                    VerificationResultCallback.VerificationCompleted(
+                        message = result.verdict.name,
+                        hasValidationErrors = hasIssues
+                    )
+                )
+            } catch (t: Throwable) {
+                Log.e(TAG, "[Error] PDF417 verification failed", t)
+                trySend(VerificationResultCallback.StageError("Verification Failed: ${t.message ?: "Unknown error"}"))
+            }
+        }
+        try {
+            awaitClose { Log.d(TAG, "callbackFlow for PDF417 closed") }
+        } finally {
+            Log.d(TAG, "callbackFlow block finished")
+        }
+    }
+
     fun clearVerificationData() {
         storedVerificationHtml = null
         Log.d(TAG, "Verification data cleared from ViewModel")
@@ -115,6 +155,7 @@ class SharedViewModel : ViewModel() {
             Screen.HOME -> "Tap2iD-SDK\nSample\nApp Version : ${BuildConfig.VERSION_NAME}\nSDK Version : ${Tap2iDSdk.getSdkVersion()}\nDeviceID : ${Utils.getAndroidId(context)}\nPackage Name : ${context.packageName}"
             Screen.NFC -> "NFC Engagement"
             Screen.QR -> "QR Engagement"
+            Screen.PDF417 -> "PDF417 Engagement"
             Screen.RESULT -> "mDL Data"
             Screen.LICENSE_KEY_VERIFICATION -> "Please enter License Key\nto verify with VwC\n---\nApp Version : ${BuildConfig.VERSION_NAME}\nSDK Version : ${Tap2iDSdk.getSdkVersion()}\nDeviceID : ${Utils.getAndroidId(context)}\nPackage Name : ${context.packageName}"
         }
@@ -166,7 +207,7 @@ class SharedViewModel : ViewModel() {
 }
 
 enum class Screen {
-    HOME, NFC, QR, RESULT, LICENSE_KEY_VERIFICATION
+    HOME, NFC, QR, PDF417, RESULT, LICENSE_KEY_VERIFICATION
 }
 
 sealed class VerificationResultCallback {
