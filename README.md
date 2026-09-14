@@ -10,6 +10,8 @@ Photo ID mDocs – ISO/IEC 23220.1
 
 EU Digital Identity Personal Identification (EUDI PID) - eu.europa.ec.eudi.pid.1
 
+Alongside these mobile credentials, the SDK also verifies the **PDF417 barcode** on the back of a physical AAMVA driver's license, so a single integration covers both digital and physical identity documents.
+
 Available for Android, iOS, and Windows desktop, the SDK allows seamless integration into existing applications, providing interoperable, multi-document verification capabilities. Tap2iD SDK abstracts the complexity of digital identity protocols and cryptographic validation, delivering a unified and scalable verification solution for modern digital credential ecosystems.
 
 ---
@@ -23,6 +25,7 @@ Available for Android, iOS, and Windows desktop, the SDK allows seamless integra
 - [Release Notes](https://github.com/CredenceID/Tap2iD-SDK-Android/releases)
 - [API Documentation](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Tap2iD-SDK-API-Documentation)
 - [Integration Guide](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Guide-to-Integrate-Tap2iD-Android-SDK)
+- [PDF417 (Physical ID) Verification](https://github.com/CredenceID/Tap2iD-SDK-Android/wiki/Tap2iD-SDK-API-Documentation#step-3-verify-a-pdf417-barcode-physical-drivers-license)
 - [Sample App](app)
 
 ---
