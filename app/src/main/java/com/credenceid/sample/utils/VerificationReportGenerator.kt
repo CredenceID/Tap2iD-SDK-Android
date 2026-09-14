@@ -3,6 +3,9 @@ package com.credenceid.sample.utils
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import com.credenceid.tap2idSdk.core.model.PDF417Verdict
+import com.credenceid.tap2idSdk.core.model.Pdf417CryptoVerification
+import com.credenceid.tap2idSdk.core.model.Pdf417VerificationResult
 import com.credenceid.tap2idSdk.core.model.TrustStatus
 import com.credenceid.tap2idSdk.core.model.VerificationResult
 import com.credenceid.tap2idSdk.core.model.VerificationStatus
@@ -16,6 +19,116 @@ object VerificationReportGenerator {
 
     fun generateHtml(result: VerificationResult): String {
         return result.toHtmlString()
+    }
+
+    /** Builds an HTML report for a PDF417 (AAMVA driver's-license) verification result. */
+    fun generateHtml(result: Pdf417VerificationResult): String {
+        return result.toHtmlString()
+    }
+
+    private fun Pdf417VerificationResult.toHtmlString(): String {
+        val sb = StringBuilder()
+        sb.append("<html><head><meta name='viewport' content='width=device-width, initial-scale=1'>$PDF417_CSS</head><body>")
+        sb.append("<div class='report-container'>")
+
+        sb.append("<div class='main-header'>")
+        sb.append("<h1 class='report-title'>PDF417 Verification Report</h1>")
+        val (statusClass, statusText) = when (this.verdict) {
+            PDF417Verdict.REAL -> "status-success" to "REAL"
+            PDF417Verdict.FAKE -> "status-failure" to "FAKE"
+            PDF417Verdict.SUSPICIOUS -> "status-warning" to "SUSPICIOUS"
+            PDF417Verdict.ERROR -> "status-failure" to "ERROR"
+        }
+        sb.append("<div class='report-status $statusClass'>$statusText</div>")
+        if (this.verdict == PDF417Verdict.ERROR) {
+            sb.append("<p class='error-subtitle'>Unable to read or verify this barcode as a valid AAMVA document.</p>")
+        }
+        sb.append("</div>")
+
+        sb.append("<div class='doc-section'>")
+
+        // Summary
+        sb.append("<div class='group-title'>SUMMARY</div>")
+        sb.append(renderDataRow("Confidence Level", "$confidenceLevel / 100"))
+        sb.append(renderDataRow("State", stateCode ?: "N/A"))
+        if (crypto.checked) {
+            sb.append(renderSimpleCheck("${crypto.authority} Crypto Verified", crypto.verified))
+        } else {
+            sb.append(renderDataRow("Crypto Verification", "Not checked"))
+        }
+
+        // VwC profile attestations (CIE-6847 expiry, CIE-6849 age). Computed SDK-side in
+        // result.attestations; surfaced here so the operator sees the expiry/age verdict
+        // rather than having to read the raw dates.
+        sb.append(
+            renderDataRow(
+                "Document Expiry",
+                if (attestations.documentExpired) {
+                    "<span style='color:#D32F2F; font-weight:bold;'>Expired</span>"
+                } else {
+                    "<span style='color:#2E7D32; font-weight:bold;'>Not expired</span>"
+                },
+            ),
+        )
+        // ageAttestationPassed is null when the profile has no age check enabled; only
+        // render a Pass/Fail row when an attestation was actually requested.
+        attestations.ageAttestationPassed?.let { passed ->
+            sb.append(renderSimpleCheck("Age Attestation", passed))
+        }
+
+        // Identity data
+        sb.append("<div class='group-title'>IDENTITY DATA</div>")
+        if (fields.isEmpty()) {
+            sb.append("<p style='font-style:italic; color:#9E9E9E; font-size:12px; margin:4px 0;'>No fields returned.</p>")
+        } else {
+            val portraitObj = fields["portrait"]
+            val portraitBitmap = when (portraitObj) {
+                is ByteArray -> BitmapFactory.decodeByteArray(portraitObj, 0, portraitObj.size)
+                is Bitmap -> portraitObj
+                else -> null
+            }?.scaleToFitHeight(300)
+            if (portraitBitmap != null) {
+                sb.append("<div class='portrait-wrapper'><img src='${portraitBitmap.toBase64String()}' class='portrait-img'/></div>")
+            }
+
+            fields.toSortedMap().forEach { (key, value) ->
+                if (key != "portrait") {
+                    val prettyKey = key.replace("_", " ")
+                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                    val displayValue = when (value) {
+                        null -> "N/A"
+                        is ByteArray -> "[Binary Data (${value.size} bytes)]"
+                        is Bitmap -> "[Bitmap Image]"
+                        else -> value.toString()
+                    }
+                    sb.append(renderDataRow(prettyKey, displayValue))
+                }
+            }
+        }
+
+        // Validation errors
+        if (errors.isNotEmpty()) {
+            sb.append("<div class='error-container'>")
+            sb.append("<span class='error-title'>VALIDATION ERRORS</span>")
+            errors.forEach { error ->
+                sb.append("<span class='error-msg'>&bull; [${error.code}] ${error.message}</span>")
+            }
+            sb.append("</div>")
+        }
+
+        // Validation warnings (RC2+)
+        if (warnings.isNotEmpty()) {
+            sb.append("<div class='warning-container'>")
+            sb.append("<span class='warning-title'>WARNINGS</span>")
+            warnings.forEach { w ->
+                sb.append("<span class='warning-msg'>&bull; [${w.code}] ${w.message}</span>")
+            }
+            sb.append("</div>")
+        }
+
+        sb.append("</div>")
+        sb.append("</div></body></html>")
+        return sb.toString()
     }
 
     private fun VerificationResult.toHtmlString(): String {
@@ -261,4 +374,47 @@ object VerificationReportGenerator {
             this.toString()
         }
     }
+
+    // Compact stylesheet for the PDF417 report; mirrors the look of the mDoc report above.
+    private val PDF417_CSS = """
+        <style>
+            :root {
+                --primary: #6200EE;
+                --success: #2E7D32;
+                --error: #D32F2F;
+                --warning: #F57C00;
+                --text-main: #212121;
+                --text-secondary: #757575;
+                --bg-main: #FFFFFF;
+                --divider: #E0E0E0;
+            }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-main); margin: 0; padding: 24px; color: var(--text-main); line-height: 1.5; }
+            .report-container { max-width: 600px; margin: 0 auto; }
+            .main-header { text-align: center; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid var(--divider); }
+            .report-title { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); }
+            .report-status { margin-top: 8px; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .status-success { color: var(--success); }
+            .status-warning { color: var(--warning); }
+            .status-failure { color: var(--error); }
+            .doc-section { margin-bottom: 40px; border: 1px solid var(--divider); border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+            .group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid var(--divider); padding-bottom: 4px; margin-top: 24px; }
+            .portrait-wrapper { text-align: center; margin-bottom: 24px; background-color: #FAFAFA; padding: 16px; border-radius: 8px; }
+            .portrait-img { height: 180px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); object-fit: contain; }
+            .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F5F5F5; }
+            .data-row:last-child { border-bottom: none; }
+            .key { color: var(--text-secondary); font-size: 13px; flex: 1; padding-right: 8px; }
+            .value { font-weight: 500; text-align: right; color: var(--text-main); font-size: 13px; flex: 1; word-wrap: break-word; }
+            .check-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 13px; }
+            .check-icon { margin-right: 8px; font-weight: bold; width: 20px; text-align: center; }
+            .check-success { color: var(--success); }
+            .check-error { color: var(--error); }
+            .error-container { background-color: #FFEBEE; padding: 12px; border-radius: 4px; margin-top: 16px; }
+            .error-title { color: var(--error); font-weight: bold; font-size: 13px; margin-bottom: 4px; display: block; }
+            .error-msg { font-size: 12px; color: #B71C1C; display: block; margin-bottom: 2px; }
+            .warning-container { background-color: #FFF3E0; padding: 12px; border-radius: 4px; margin-top: 16px; }
+            .warning-title { color: var(--warning); font-weight: bold; font-size: 13px; margin-bottom: 4px; display: block; }
+            .warning-msg { font-size: 12px; color: #E65100; display: block; margin-bottom: 2px; }
+            .error-subtitle { color: var(--error); font-size: 14px; margin: 8px 0 0; }
+        </style>
+    """.trimIndent()
 }
