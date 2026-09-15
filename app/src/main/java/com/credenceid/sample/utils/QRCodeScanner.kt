@@ -104,7 +104,7 @@ class QRCodeScanner(
                 if (barcodes.isNotEmpty()) {
                     isBarcodeDetected = true
                     barcodes.forEach { barcode ->
-                        barcodeScannerCallback.onBarcodeDetected(barcode.rawValue)
+                        barcodeScannerCallback.onBarcodeDetected(barcode.payload())
                     }
                 }
                 imageProxy.close()
@@ -118,6 +118,18 @@ class QRCodeScanner(
                 imageProxy.close()
             }
     }
+
+    /**
+     * The barcode's payload, falling back to a byte-for-byte decode of [Barcode.rawBytes].
+     *
+     * ML Kit populates [Barcode.rawValue] only when the payload decodes as UTF-8. An AAMVA
+     * PDF417 carries a binary subfile on some jurisdictions (the CA DMV signature among them),
+     * so relying on `rawValue` alone drops those scans silently - the camera reads the barcode
+     * and the app reports nothing found. ISO-8859-1 is the decode that round-trips every byte
+     * 0x00-0xFF to the same code point, so the payload reaches the classifier unaltered.
+     */
+    private fun Barcode.payload(): String? =
+        rawValue ?: rawBytes?.toString(Charsets.ISO_8859_1)
 
     private fun isCameraPermissionGranted(): Boolean {
         return ContextCompat.checkSelfPermission(
