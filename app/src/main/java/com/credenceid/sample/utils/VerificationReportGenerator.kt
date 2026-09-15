@@ -50,9 +50,9 @@ object VerificationReportGenerator {
         // Summary
         sb.append("<div class='group-title'>SUMMARY</div>")
         sb.append(renderDataRow("Confidence Level", "$confidenceLevel / 100"))
-        sb.append(renderDataRow("State", stateCode ?: "N/A"))
+        sb.append(renderDataRow("State", stateCode?.escapeHtml() ?: "N/A"))
         if (crypto.checked) {
-            sb.append(renderSimpleCheck("${crypto.authority} Crypto Verified", crypto.verified))
+            sb.append(renderSimpleCheck("${crypto.authority.escapeHtml()} Crypto Verified", crypto.verified))
         } else {
             sb.append(renderDataRow("Crypto Verification", "Not checked"))
         }
@@ -101,7 +101,7 @@ object VerificationReportGenerator {
                         is Bitmap -> "[Bitmap Image]"
                         else -> value.toString()
                     }
-                    sb.append(renderDataRow(prettyKey, displayValue))
+                    sb.append(renderDataRow(prettyKey.escapeHtml(), displayValue.escapeHtml()))
                 }
             }
         }
@@ -111,7 +111,7 @@ object VerificationReportGenerator {
             sb.append("<div class='error-container'>")
             sb.append("<span class='error-title'>VALIDATION ERRORS</span>")
             errors.forEach { error ->
-                sb.append("<span class='error-msg'>&bull; [${error.code}] ${error.message}</span>")
+                sb.append("<span class='error-msg'>&bull; [${error.code}] ${error.message.escapeHtml()}</span>")
             }
             sb.append("</div>")
         }
@@ -121,7 +121,7 @@ object VerificationReportGenerator {
             sb.append("<div class='warning-container'>")
             sb.append("<span class='warning-title'>WARNINGS</span>")
             warnings.forEach { w ->
-                sb.append("<span class='warning-msg'>&bull; [${w.code}] ${w.message}</span>")
+                sb.append("<span class='warning-msg'>&bull; [${w.code}] ${w.message.escapeHtml()}</span>")
             }
             sb.append("</div>")
         }
@@ -241,7 +241,7 @@ object VerificationReportGenerator {
             sb.append("<div class='doc-section'>")
             sb.append("<div class='doc-header'>")
             val displayDocType = doc.docType.replace("org.iso.18013.5.1.", "")
-            sb.append("<h2 class='doc-type'>$displayDocType</h2>")
+            sb.append("<h2 class='doc-type'>${displayDocType.escapeHtml()}</h2>")
             sb.append("</div>")
 
             val portraitObj = doc.nameSpaces.firstNotNullOfOrNull { it.attributes["portrait"] }
@@ -270,7 +270,7 @@ object VerificationReportGenerator {
             if (auth.trustAttributes.issuerDistinguishedName != null) {
                 sb.append("<div class='data-row' style='margin-top:8px;'>")
                 sb.append("<span class='key'>Issuer DN</span>")
-                sb.append("<span class='value' style='font-size:11px;'>${auth.trustAttributes.issuerDistinguishedName}</span>")
+                sb.append("<span class='value' style='font-size:11px;'>${auth.trustAttributes.issuerDistinguishedName.toString().escapeHtml()}</span>")
                 sb.append("</div>")
             }
 
@@ -293,7 +293,7 @@ object VerificationReportGenerator {
                 sb.append("<p style='font-style:italic; color:#757575; font-size:13px;'>No namespaces found.</p>")
             } else {
                 doc.nameSpaces.forEach { ns ->
-                    sb.append("<div class='namespace-header'>${ns.name}</div>")
+                    sb.append("<div class='namespace-header'>${ns.name.escapeHtml()}</div>")
 
                     if (ns.attributes.isEmpty()) {
                         sb.append("<p style='font-style:italic; color:#9E9E9E; font-size:12px; margin:4px 0;'>Empty Namespace</p>")
@@ -308,7 +308,7 @@ object VerificationReportGenerator {
                                     is Bitmap -> "[Bitmap Image]"
                                     else -> value.toString()
                                 }
-                                sb.append(renderDataRow(prettyKey, displayValue))
+                                sb.append(renderDataRow(prettyKey.escapeHtml(), displayValue.escapeHtml()))
                             }
                         }
                     }
@@ -320,7 +320,7 @@ object VerificationReportGenerator {
                 sb.append("<div class='error-container'>")
                 sb.append("<span class='error-title'>VALIDATION ERRORS</span>")
                 auth.validationErrors.forEach { error ->
-                    sb.append("<span class='error-msg'>• $error</span>")
+                    sb.append("<span class='error-msg'>• ${error.toString().escapeHtml()}</span>")
                 }
                 sb.append("</div>")
             }
@@ -331,6 +331,24 @@ object VerificationReportGenerator {
         sb.append("</div></body></html>")
         return sb.toString()
     }
+
+    /**
+     * Escapes HTML metacharacters in text that came off a scanned document.
+     *
+     * Document field values, namespace names and classifier messages all originate in the
+     * barcode or mDoc being inspected - untrusted input rendered straight into a WebView, so
+     * without this a crafted document can inject markup or script into the report. Applied at
+     * each such call site rather than inside [renderDataRow], whose `valueHtml` parameter is
+     * deliberately given real markup for the expiry and validity rows.
+     *
+     * `&` is replaced first so the entities introduced afterwards are not re-escaped.
+     */
+    private fun String.escapeHtml(): String = this
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;")
 
     private fun renderSimpleCheck(label: String, isValid: Boolean): String {
         val colorClass = if (isValid) "check-success" else "check-error"
