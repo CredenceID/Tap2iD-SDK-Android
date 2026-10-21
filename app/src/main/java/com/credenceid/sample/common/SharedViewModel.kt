@@ -50,6 +50,8 @@ class SharedViewModel : ViewModel() {
             val sdkConfig = SdkConfigBuilder()
                 .setApplicationContext(applicationContext)
                 .setApiKey(licenseKey)
+                // SDK logs are off by default since 2.2.1; turn them on for debug builds only.
+                .setLoggingEnabled(BuildConfig.DEBUG)
                 .build()
 
             Tap2iDSdk.initSdk(sdkConfig, object : InitSdkResultListener {
