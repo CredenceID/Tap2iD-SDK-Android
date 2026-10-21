@@ -60,13 +60,15 @@ object VerificationReportGenerator {
         // VwC profile attestations (CIE-6847 expiry, CIE-6849 age). Computed SDK-side in
         // result.attestations; surfaced here so the operator sees the expiry/age verdict
         // rather than having to read the raw dates.
+        // documentExpired is null when the profile does not apply the expiry check (CIE-6915):
+        // showing "Not expired" then would claim a check that never ran.
         sb.append(
             renderDataRow(
                 "Document Expiry",
-                if (attestations.documentExpired) {
-                    "<span style='color:#D32F2F; font-weight:bold;'>Expired</span>"
-                } else {
-                    "<span style='color:#2E7D32; font-weight:bold;'>Not expired</span>"
+                when (attestations.documentExpired) {
+                    true -> "<span style='color:#D32F2F; font-weight:bold;'>Expired</span>"
+                    false -> "<span style='color:#2E7D32; font-weight:bold;'>Not expired</span>"
+                    null -> "<span style='color:#757575; font-weight:bold;'>Not checked</span>"
                 },
             ),
         )
